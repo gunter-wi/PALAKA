@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DataSci Collab — Git Collaborative Project</title>
+
+  <!--
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║          DATA SCIENCE COLLABORATIVE GIT PROJECT — INSTRUCTOR COPY       ║
+  ║                                                                          ║
+  ║  PURPOSE:  Practice real Git collaboration on a data science codebase.   ║
+  ║  GROUPS:   Maximum 3 students per group.                                 ║
+  ║                                                                          ║
+  ║  ┌─────────────────────────────────────────────────────────────────────┐ ║
+  ║  │  STUDENT 1 (REPO OWNER) ── Project setup + Dataset & Table Engine   │ ║
+  ║  │  STUDENT 2 (COLLABORATOR) ── Data Visualization (Charts)            │ ║
+  ║  │  STUDENT 3 (COLLABORATOR) ── Statistical Analysis Engine            │ ║
+  ║  └─────────────────────────────────────────────────────────────────────┘ ║
+  ║                                                                          ║
+  ║  SEARCH FOR "STUDENT X CONTRIBUTION" COMMENTS TO FIND EACH TASK BLOCK   ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
+
+  GIT WORKFLOW FOR EACH GROUP:
+  ─────────────────────────────
+  1. Student 1 creates the GitHub repo and pushes this starter file.
+  2. Student 1 invites Students 2 & 3 as collaborators.
+  3. Each student creates their own branch (e.g., feature/visualization).
+  4. Students implement their assigned section (search for their TODO block).
+  5. Each student opens a Pull Request (PR) targeting main.
+  6. Another group member reviews and approves the PR before merging.
+  7. Resolve any merge conflicts as a team.
+
+  GRADING RUBRIC (per student):
+  ─────────────────────────────
+  ✔ At least 5 meaningful commits on their branch
+  ✔ A submitted and merged Pull Request with a description
+  ✔ Code review comment left on a teammate's PR
+  ✔ Functional implementation of their assigned section
+  ✔ No broken code merged into main
+  -->
+
+  <!-- Chart.js — only dependency, loaded from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <!-- Google Fonts — Courier Prime for terminal feel, DM Sans for UI -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ──────────────────────────────────────────────
+       DESIGN TOKENS  (CSS custom properties)
+       Any student can update these for theming.
+    ────────────────────────────────────────────── */
+    :root {
+      --bg:         #0d0f14;        /* near-black background */
+      --surface:    #151820;        /* card / panel background */
+      --surface2:   #1c2030;        /* slightly lighter surface */
+      --border:     #2a2f45;        /* subtle border */
+      --accent:     #f0b429;        /* amber — primary accent */
+      --accent2:    #3ecfcf;        /* teal — secondary accent */
+      --accent3:    #e05c6a;        /* coral — danger / highlight */
+      --text:       #d4daf0;        /* primary text */
+      --text-dim:   #6b748f;        /* muted text */
+      --mono:       'Courier Prime', monospace;
+      --sans:       'DM Sans', sans-serif;
+      --radius:     6px;
+      --radius-lg:  12px;
+      --glow:       0 0 18px rgba(240,180,41,0.25);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 0 80px;
+      /* subtle scanline texture for terminal feel */
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.013) 2px,
+        rgba(255,255,255,0.013) 4px
+      );
+    }
+
+    /* ── HEADER ─────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 2px solid var(--accent);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--glow);
+    }
+
+    .header-left h1 {
+      font-family: var(--mono);
+      font-size: 1.3rem;
+      color: var(--accent);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .header-left p {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+      font-family: var(--mono);
+    }
+
+    .git-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 14px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--accent2);
+    }
+
+    .git-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent2);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* ── MAIN LAYOUT ─────────────────────────────── */
+    main {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 40px 30px;
+    }
+
+    /* ── CONTRIBUTION CARDS (instruction panels) ── */
+    .contrib-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 50px;
+    }
+
+    .contrib-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .contrib-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .contrib-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .contrib-card.s1::before { background: var(--accent); }
+    .contrib-card.s2::before { background: var(--accent2); }
+    .contrib-card.s3::before { background: var(--accent3); }
+
+    .contrib-card .student-tag {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .s1 .student-tag { color: var(--accent); }
+    .s2 .student-tag { color: var(--accent2); }
+    .s3 .student-tag { color: var(--accent3); }
+
+    .contrib-card h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .contrib-card ul {
+      list-style: none;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+    }
+
+    .contrib-card ul li::before {
+      content: '→ ';
+      color: var(--text-dim);
+    }
+
+    .branch-tag {
+      display: inline-block;
+      margin-top: 12px;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 8px;
+      color: var(--text-dim);
+    }
+
+    /* ── SECTION WRAPPERS ────────────────────────── */
+    .section {
+      margin-bottom: 56px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-header h2 {
+      font-family: var(--mono);
+      font-size: 1.05rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .owner-tag {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+    }
+
+    .tag-s1 { background: rgba(240,180,41,0.15);  color: var(--accent);  border: 1px solid rgba(240,180,41,0.3); }
+    .tag-s2 { background: rgba(62,207,207,0.15);  color: var(--accent2); border: 1px solid rgba(62,207,207,0.3); }
+    .tag-s3 { background: rgba(224,92,106,0.15);  color: var(--accent3); border: 1px solid rgba(224,92,106,0.3); }
+
+    /* ── PANEL / CARD ────────────────────────────── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    /* ── TABLE STYLES ────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      font-family: var(--mono);
+    }
+
+    thead th {
+      background: var(--surface2);
+      color: var(--accent);
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 0.72rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover { background: var(--surface2); }
+
+    tbody td {
+      padding: 9px 14px;
+      color: var(--text);
+    }
+
+    tbody td.numeric { color: var(--accent2); }
+    tbody td.grade-A { color: #56d364; }
+    tbody td.grade-B { color: var(--accent); }
+    tbody td.grade-C { color: var(--accent3); }
+    tbody td.grade-D { color: #e05c6a; }
+
+    /* ── TOOLBAR ─────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    input[type="text"], select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    input[type="text"] { width: 220px; }
+
+    button {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #000;
+      font-weight: 700;
+    }
+
+    button.primary:hover {
+      background: #ffc946;
+    }
+
+    .count-badge {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-left: auto;
+    }
+
+    /* ── CHART GRID ──────────────────────────────── */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .chart-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+
+    .chart-box h4 {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .chart-box canvas { max-height: 240px; }
+
+    .chart-placeholder {
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+    }
+
+    .chart-placeholder span { font-size: 2rem; }
+
+    /* ── STATS GRID ──────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-card .stat-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .stat-value {
+      font-family: var(--mono);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent3);
+    }
+
+    .stat-card .stat-sub {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .stat-placeholder {
+      font-family: var(--mono);
+      font-size: 1.2rem;
+      color: var(--border);
+    }
+
+    /* ── ANALYSIS TABLE ──────────────────────────── */
+    .analysis-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .analysis-panel {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+    }
+
+    .analysis-panel h4 {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .stat-list {
+      list-style: none;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+    }
+
+    .stat-list li {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat-list li:last-child { border-bottom: none; }
+
+    .stat-list .key { color: var(--text-dim); }
+    .stat-list .val { color: var(--accent2); }
+
+    /* ── TODO CALLOUT ────────────────────────────── */
+    .todo-callout {
+      background: rgba(240,180,41,0.08);
+      border: 1px solid rgba(240,180,41,0.25);
+      border-left: 4px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--accent);
+      margin-bottom: 20px;
+      line-height: 1.7;
+    }
+
+    .todo-callout strong { display: block; margin-bottom: 4px; font-size: 0.72rem; letter-spacing: 1px; }
+
+    /* ── FOOTER ──────────────────────────────────── */
+    footer {
+      text-align: center;
+      margin-top: 60px;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    /* ── RESPONSIVE ──────────────────────────────── */
+    @media (max-width: 900px) {
+      .contrib-grid    { grid-template-columns: 1fr; }
+      .chart-grid      { grid-template-columns: 1fr; }
+      .stats-grid      { grid-template-columns: repeat(2,1fr); }
+      .analysis-row    { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════════════ -->
+<header>
+  <div class="header-left">
+    <h1>DataSci Collab Dashboard</h1>
+    <p>Student Performance Dataset · Git Collaborative Activity</p>
+  </div>
+  <div class="git-badge">
+    <span class="dot"></span>
+    branch: <strong id="currentBranch">main</strong>
+  </div>
+</header>
+
+<main>
+
+  <!-- ═══════════════════════════════════════════════════
+       CONTRIBUTION OVERVIEW CARDS
+  ═══════════════════════════════════════════════════ -->
+  <div class="contrib-grid">
+
+    <!-- Student 1 -->
+    <div class="contrib-card s1">
+      <div class="student-tag">Student 1 · Repo Owner</div>
+      <h3>Dataset Engine &amp; Project Setup</h3>
+      <ul>
+        <li>Initialize the GitHub repository</li>
+        <li>Implement <code>loadDataset()</code></li>
+        <li>Implement <code>renderTable()</code></li>
+        <li>Implement filter &amp; sort logic</li>
+        <li>Invite collaborators &amp; protect main</li>
+      </ul>
+      <span class="branch-tag">branch: main (setup) → feature/data-engine</span>
+    </div>
+
+    <!-- Student 2 -->
+    <div class="contrib-card s2">
+      <div class="student-tag">Student 2 · Collaborator</div>
+      <h3>Data Visualization Layer</h3>
+      <ul>
+        <li>Implement <code>drawBarChart()</code></li>
+        <li>Implement <code>drawScatterPlot()</code></li>
+        <li>Implement <code>drawHistogram()</code></li>
+        <li>Implement <code>drawPieChart()</code></li>
+        <li>Open and get PR merged into main</li>
+      </ul>
+      <span class="branch-tag">branch: feature/visualization</span>
+    </div>
+
+    <!-- Student 3 -->
+    <div class="contrib-card s3">
+      <div class="student-tag">Student 3 · Collaborator</div>
+      <h3>Statistical Analysis Engine</h3>
+      <ul>
+        <li>Implement <code>mean()</code>, <code>median()</code>, <code>mode()</code></li>
+        <li>Implement <code>stdDev()</code>, <code>variance()</code></li>
+        <li>Implement <code>pearsonCorr()</code></li>
+        <li>Implement <code>linearRegression()</code></li>
+        <li>Open and get PR merged into main</li>
+      </ul>
+      <span class="branch-tag">branch: feature/statistics</span>
+    </div>
+
+  </div><!-- /contrib-grid -->
+
+
+  <!-- ═══════════════════════════════════════════════════
+       SECTION 1 — DATASET & TABLE  (STUDENT 1)
+  ═══════════════════════════════════════════════════ -->
+  <section class="section" id="sec-data">
+    <div class="section-header">
+      <h2>01 · Dataset Explorer</h2>
+      <span class="owner-tag tag-s1">Student 1 · Repo Owner</span>
+    </div>
+
+    <!--
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  STUDENT 1 CONTRIBUTION — Dataset Engine                        │
+    │  Branch: feature/data-engine                                    │
+    │                                                                 │
+    │  YOUR TASKS:                                                    │
+    │  1. Complete loadDataset() — the sample data is provided        │
+    │     in RAW_DATA below. Parse it and store in window.DS          │
+    │  2. Complete renderTable(data) — build the HTML table           │
+    │     dynamically from the data array                             │
+    │  3. Wire up the filter input and sort dropdown                  │
+    │  4. Call loadDataset() on DOMContentLoaded                      │
+    │                                                                 │
+    │  COMMITS EXPECTED:                                              │
+    │  • "feat: add raw dataset and loadDataset function"             │
+    │  • "feat: implement renderTable with dynamic columns"           │
+    │  • "feat: add filter by name and sort by column"                │
+    │  • "fix: handle edge cases in table rendering"                  │
+    │  • "chore: invite collaborators and set branch protection"      │
+    └─────────────────────────────────────────────────────────────────┘
+    -->
+
+    <div class="todo-callout">
+      <strong>⚠ TODO — Student 1</strong>
+      Implement the three functions marked below: <code>loadDataset()</code>, <code>renderTable(data)</code>,
+      and wire the filter/sort controls. The raw dataset object (RAW_DATA) is already provided.
+      After completion, commit and open your PR to main.
+    </div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <input type="text" id="filterInput" placeholder="Filter by student name..." />
+        <select id="sortSelect">
+          <option value="">Sort by...</option>
+          <option value="name">Name</option>
+          <option value="studyHours">Study Hours</option>
+          <option value="score">Final Score</option>
+          <option value="grade">Grade</option>
+          <option value="attendance">Attendance %</option>
+        </select>
+        <button onclick="applyFilterSort()">Apply</button>
+        <button onclick="resetTable()">Reset</button>
+        <span class="count-badge" id="rowCount">— rows</span>
+      </div>
+
+      <div class="table-wrap">
+        <table id="dataTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Student Name</th>
+              <th>Study Hours/Week</th>
+              <th>Attendance %</th>
+              <th>Midterm Score</th>
+              <th>Final Score</th>
+              <th>Assignments Done</th>
+              <th>Sleep Hrs/Night</th>
+              <th>Part-time Job</th>
+              <th>Grade</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Student 1: renderTable() will populate this -->
+            <tr>
+              <td colspan="10" style="text-align:center; color:var(--text-dim); font-family:var(--mono); padding:40px;">
+                ⌛ Waiting for Student 1 to implement loadDataset() and renderTable()
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div><!-- /panel -->
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════
+       SECTION 2 — VISUALIZATIONS  (STUDENT 2)
+  ═══════════════════════════════════════════════════ -->
+  <section class="section" id="sec-viz">
+    <div class="section-header">
+      <h2>02 · Visualizations</h2>
+      <span class="owner-tag tag-s2">Student 2 · Collaborator</span>
+    </div>
+
+    <!--
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  STUDENT 2 CONTRIBUTION — Data Visualization Layer              │
+    │  Branch: feature/visualization                                  │
+    │                                                                 │
+    │  YOUR TASKS:                                                    │
+    │  1. drawBarChart(canvasId, data)  — Study Hours vs Final Score  │
+    │  2. drawScatterPlot(canvasId, data) — Attendance vs Score       │
+    │  3. drawHistogram(canvasId, data) — Final Score distribution    │
+    │  4. drawPieChart(canvasId, data)  — Grade distribution A/B/C/D │
+    │                                                                 │
+    │  HOW TO ACCESS DATA:                                            │
+    │  - window.DS holds the full dataset array (set by Student 1)   │
+    │  - Each row has: name, studyHours, attendance, midterm,         │
+    │                  score, assignments, sleep, job, grade          │
+    │                                                                 │
+    │  CHART.JS IS ALREADY LOADED — use Chart object directly         │
+    │                                                                 │
+    │  COMMITS EXPECTED:                                              │
+    │  • "feat: implement drawBarChart for study hours vs score"      │
+    │  • "feat: implement drawScatterPlot attendance vs score"        │
+    │  • "feat: implement drawHistogram for score distribution"       │
+    │  • "feat: implement drawPieChart for grade breakdown"           │
+    │  • "fix: add chart destroy to prevent canvas reuse errors"      │
+    └─────────────────────────────────────────────────────────────────┘
+    -->
+
+    <div class="todo-callout" style="border-left-color: var(--accent2); color: var(--accent2); background: rgba(62,207,207,0.06); border-color: rgba(62,207,207,0.25);">
+      <strong>⚠ TODO — Student 2</strong>
+      Implement the four chart functions: <code>drawBarChart()</code>, <code>drawScatterPlot()</code>,
+      <code>drawHistogram()</code>, and <code>drawPieChart()</code>. Then call <code>initCharts()</code>
+      inside <code>onDataReady()</code>. Use Chart.js (already loaded).
+      Replace each placeholder box with a working canvas chart.
+    </div>
+
+    <div class="chart-grid">
+
+      <!-- Bar Chart -->
+      <div class="chart-box">
+        <h4>Study Hours vs Final Score</h4>
+        <div class="chart-placeholder" id="barPlaceholder">
+          <span>📊</span>
+          Student 2: implement drawBarChart()
+        </div>
+        <canvas id="barChart" style="display:none;"></canvas>
+      </div>
+
+      <!-- Scatter Plot -->
+      <div class="chart-box">
+        <h4>Attendance % vs Final Score</h4>
+        <div class="chart-placeholder" id="scatterPlaceholder">
+          <span>🔵</span>
+          Student 2: implement drawScatterPlot()
+        </div>
+        <canvas id="scatterChart" style="display:none;"></canvas>
+      </div>
+
+      <!-- Histogram -->
+      <div class="chart-box">
+        <h4>Final Score Distribution</h4>
+        <div class="chart-placeholder" id="histPlaceholder">
+          <span>📈</span>
+          Student 2: implement drawHistogram()
+        </div>
+        <canvas id="histChart" style="display:none;"></canvas>
+      </div>
+
+      <!-- Pie Chart -->
+      <div class="chart-box">
+        <h4>Grade Distribution</h4>
+        <div class="chart-placeholder" id="piePlaceholder">
+          <span>🍕</span>
+          Student 2: implement drawPieChart()
+        </div>
+        <canvas id="pieChart" style="display:none;"></canvas>
+      </div>
+
+    </div><!-- /chart-grid -->
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════
+       SECTION 3 — STATISTICS  (STUDENT 3)
+  ═══════════════════════════════════════════════════ -->
+  <section class="section" id="sec-stats">
+    <div class="section-header">
+      <h2>03 · Statistical Analysis</h2>
+      <span class="owner-tag tag-s3">Student 3 · Collaborator</span>
+    </div>
+
+    <!--
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  STUDENT 3 CONTRIBUTION — Statistical Analysis Engine           │
+    │  Branch: feature/statistics                                     │
+    │                                                                 │
+    │  YOUR TASKS:                                                    │
+    │  1. mean(arr)         → arithmetic average                      │
+    │  2. median(arr)       → middle value of sorted array            │
+    │  3. mode(arr)         → most frequently occurring value         │
+    │  4. variance(arr)     → population variance                     │
+    │  5. stdDev(arr)       → square root of variance                 │
+    │  6. pearsonCorr(x,y)  → Pearson correlation coefficient r       │
+    │  7. linearRegression(x,y) → { slope, intercept, rSquared }     │
+    │  8. Call renderStats(window.DS) inside onDataReady()            │
+    │                                                                 │
+    │  All functions accept plain JS arrays of numbers.              │
+    │                                                                 │
+    │  COMMITS EXPECTED:                                              │
+    │  • "feat: implement mean, median, mode functions"               │
+    │  • "feat: implement variance and standard deviation"            │
+    │  • "feat: implement Pearson correlation coefficient"            │
+    │  • "feat: implement linear regression with R-squared"           │
+    │  • "feat: wire renderStats to display results in the DOM"       │
+    └─────────────────────────────────────────────────────────────────┘
+    -->
+
+    <div class="todo-callout" style="border-left-color: var(--accent3); color: var(--accent3); background: rgba(224,92,106,0.06); border-color: rgba(224,92,106,0.25);">
+      <strong>⚠ TODO — Student 3</strong>
+      Implement all seven statistical functions below the comment block in the JS section.
+      Then call <code>renderStats(window.DS)</code> inside <code>onDataReady()</code>.
+      All placeholder "—" values below should be replaced by computed results.
+    </div>
+
+    <!-- Summary stat cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Mean Score</div>
+        <div class="stat-value" id="statMean"><span class="stat-placeholder">—</span></div>
+        <div class="stat-sub">Final Score</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Median Score</div>
+        <div class="stat-value" id="statMedian"><span class="stat-placeholder">—</span></div>
+        <div class="stat-sub">Final Score</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Std Deviation</div>
+        <div class="stat-value" id="statStdDev"><span class="stat-placeholder">—</span></div>
+        <div class="stat-sub">Final Score</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Mode</div>
+        <div class="stat-value" id="statMode"><span class="stat-placeholder">—</span></div>
+        <div class="stat-sub">Final Score</div>
+      </div>
+    </div>
+
+    <!-- Detailed analysis panels -->
+    <div class="analysis-row">
+
+      <!-- Descriptive stats table -->
+      <div class="analysis-panel">
+        <h4>Descriptive Statistics — Final Score</h4>
+        <ul class="stat-list">
+          <li><span class="key">Count (n)</span>        <span class="val" id="dCount">—</span></li>
+          <li><span class="key">Min</span>              <span class="val" id="dMin">—</span></li>
+          <li><span class="key">Max</span>              <span class="val" id="dMax">—</span></li>
+          <li><span class="key">Range</span>            <span class="val" id="dRange">—</span></li>
+          <li><span class="key">Variance (σ²)</span>   <span class="val" id="dVariance">—</span></li>
+          <li><span class="key">Std Dev (σ)</span>      <span class="val" id="dStdDev">—</span></li>
+        </ul>
+      </div>
+
+      <!-- Correlation & regression -->
+      <div class="analysis-panel">
+        <h4>Correlation &amp; Regression (Study Hours → Score)</h4>
+        <ul class="stat-list">
+          <li><span class="key">Pearson r</span>        <span class="val" id="rPearson">—</span></li>
+          <li><span class="key">Interpretation</span>   <span class="val" id="rInterp">—</span></li>
+          <li><span class="key">Slope (m)</span>        <span class="val" id="rSlope">—</span></li>
+          <li><span class="key">Intercept (b)</span>    <span class="val" id="rIntercept">—</span></li>
+          <li><span class="key">R² (fit quality)</span> <span class="val" id="rSquared">—</span></li>
+          <li><span class="key">Equation</span>         <span class="val" id="rEquation">—</span></li>
+        </ul>
+      </div>
+
+    </div><!-- /analysis-row -->
+  </section>
+
+</main>
+
+<footer>
+  DS COLLAB PROJECT · COMPUTER SCIENCE DEPT · GIT COLLABORATIVE ACTIVITY
+  <br>Each student's contribution is tracked via commits, branches, and pull requests.
+</footer>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     JAVASCRIPT — Three clearly separated contribution zones
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+"use strict";
+
+/* ─────────────────────────────────────────────────────────────────
+   SHARED DATASET (read-only — do NOT modify)
+   This simulates a CSV file already committed to the repository.
+   Structure: { name, studyHours, attendance, midterm, score,
+                assignments, sleep, job, grade }
+────────────────────────────────────────────────────────────────── */
+const RAW_DATA = [
+  { name:"Ana Reyes",       studyHours:18, attendance:95, midterm:87, score:91, assignments:10, sleep:7, job:false, grade:"A" },
+  { name:"Ben Santos",      studyHours:10, attendance:78, midterm:65, score:68, assignments:7,  sleep:6, job:true,  grade:"C" },
+  { name:"Clara Tan",       studyHours:22, attendance:98, midterm:94, score:97, assignments:10, sleep:8, job:false, grade:"A" },
+  { name:"Diego Flores",    studyHours:8,  attendance:60, midterm:52, score:55, assignments:5,  sleep:5, job:true,  grade:"D" },
+  { name:"Elena Cruz",      studyHours:15, attendance:88, midterm:78, score:82, assignments:9,  sleep:7, job:false, grade:"B" },
+  { name:"Felix Lim",       studyHours:12, attendance:82, midterm:72, score:75, assignments:8,  sleep:6, job:true,  grade:"C" },
+  { name:"Grace Mendoza",   studyHours:20, attendance:96, midterm:90, score:93, assignments:10, sleep:8, job:false, grade:"A" },
+  { name:"Henry Ong",       studyHours:6,  attendance:55, midterm:45, score:50, assignments:4,  sleep:5, job:true,  grade:"D" },
+  { name:"Iris Villanueva", studyHours:17, attendance:91, midterm:83, score:86, assignments:9,  sleep:7, job:false, grade:"B" },
+  { name:"Jay Aquino",      studyHours:14, attendance:85, midterm:76, score:79, assignments:8,  sleep:7, job:false, grade:"B" },
+  { name:"Karen Delos",     studyHours:9,  attendance:70, midterm:60, score:63, assignments:6,  sleep:6, job:true,  grade:"C" },
+  { name:"Luis Ramos",      studyHours:21, attendance:97, midterm:92, score:95, assignments:10, sleep:8, job:false, grade:"A" },
+  { name:"Maria Dela Cruz", studyHours:16, attendance:89, midterm:80, score:84, assignments:9,  sleep:7, job:true,  grade:"B" },
+  { name:"Noel Bautista",   studyHours:11, attendance:75, midterm:68, score:71, assignments:7,  sleep:6, job:false, grade:"C" },
+  { name:"Olivia Pascual",  studyHours:19, attendance:94, midterm:88, score:90, assignments:10, sleep:8, job:false, grade:"A" },
+  { name:"Paulo Jimenez",   studyHours:7,  attendance:62, midterm:50, score:53, assignments:5,  sleep:5, job:true,  grade:"D" },
+  { name:"Quinn Serrano",   studyHours:13, attendance:80, midterm:73, score:76, assignments:8,  sleep:7, job:false, grade:"C" },
+  { name:"Rosa Aguilar",    studyHours:23, attendance:99, midterm:96, score:98, assignments:10, sleep:9, job:false, grade:"A" },
+  { name:"Sam Torres",      studyHours:10, attendance:74, midterm:66, score:69, assignments:7,  sleep:6, job:true,  grade:"C" },
+  { name:"Tina Guerrero",   studyHours:15, attendance:87, midterm:79, score:81, assignments:9,  sleep:7, job:false, grade:"B" },
+];
+
+/* Global dataset — Student 1 sets this; Students 2 & 3 read from it */
+window.DS = [];
+
+/* Chart instances registry — Student 2 uses this to destroy old charts */
+window.CHARTS = {};
+
+/* Called automatically when the dataset is ready (Student 1 triggers this) */
+function onDataReady() {
+  // Student 2: call your chart initializer here
+  // Example: initCharts();
+
+  // Student 3: call your stats renderer here
+  // Example: renderStats(window.DS);
+
+  console.log("✅ onDataReady() fired. window.DS has", window.DS.length, "rows.");
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   ███████╗████████╗██╗   ██╗██████╗ ███████╗███╗   ██╗████████╗
+   ██╔════╝╚══██╔══╝██║   ██║██╔══██╗██╔════╝████╗  ██║╚══██╔══╝
+   ███████╗   ██║   ██║   ██║██║  ██║█████╗  ██╔██╗ ██║   ██║
+   ╚════██║   ██║   ██║   ██║██║  ██║██╔══╝  ██║╚██╗██║   ██║
+   ███████║   ██║   ╚██████╔╝██████╔╝███████╗██║ ╚████║   ██║
+   ╚══════╝   ╚═╝    ╚═════╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝
+
+   STUDENT 1 — DATASET ENGINE & TABLE (branch: feature/data-engine)
+═══════════════════════════════════════════════════════════════════ */
+
+/**
+ * STUDENT 1 TODO — loadDataset()
+ *
+ * PURPOSE: Load RAW_DATA into window.DS and trigger the rest of the app.
+ *
+ * STEPS:
+ *  1. Assign RAW_DATA to window.DS (a copy is fine: [...RAW_DATA])
+ *  2. Call renderTable(window.DS) to populate the HTML table
+ *  3. Call onDataReady() so Students 2 & 3 can initialize their sections
+ *  4. Update #rowCount with the total number of rows
+ */
+function loadDataset() {
+  // TODO: Implement this function
+  // Hint: window.DS = [...RAW_DATA];
+  // Hint: renderTable(window.DS);
+  // Hint: document.getElementById('rowCount').textContent = window.DS.length + ' rows';
+  // Hint: onDataReady();
+
+  console.warn("⚠ Student 1: loadDataset() is not yet implemented.");
+}
+
+/**
+ * STUDENT 1 TODO — renderTable(data)
+ *
+ * PURPOSE: Dynamically build and insert table rows into #tableBody.
+ *
+ * @param {Array} data - Array of student objects from RAW_DATA
+ *
+ * STEPS:
+ *  1. Clear #tableBody
+ *  2. If data is empty, show a "No results found" row
+ *  3. For each student object, create a <tr> with <td> cells for every column
+ *  4. Apply CSS classes: 'numeric' to number cells, 'grade-A/B/C/D' to grade cells
+ *  5. Format booleans: job=true → "Yes", job=false → "No"
+ *
+ * EXAMPLE ROW FORMAT:
+ *  <tr>
+ *    <td>1</td>
+ *    <td>Ana Reyes</td>
+ *    <td class="numeric">18</td>
+ *    ...
+ *    <td class="grade-A">A</td>
+ *  </tr>
+ */
+function renderTable(data) {
+  // TODO: Implement this function
+  console.warn("⚠ Student 1: renderTable() is not yet implemented.");
+}
+
+/**
+ * STUDENT 1 TODO — applyFilterSort()
+ *
+ * PURPOSE: Filter by name and sort by selected column, then re-render.
+ *
+ * STEPS:
+ *  1. Read the value from #filterInput (case-insensitive name filter)
+ *  2. Read the selected option from #sortSelect
+ *  3. Filter window.DS by name, then sort the result
+ *  4. Call renderTable(filtered + sorted data)
+ *  5. Update #rowCount
+ *
+ * SORT KEYS match the property names in RAW_DATA:
+ *  'name' → alphabetical, others → numeric descending
+ */
+function applyFilterSort() {
+  // TODO: Implement this function
+  console.warn("⚠ Student 1: applyFilterSort() is not yet implemented.");
+}
+
+/**
+ * STUDENT 1 TODO — resetTable()
+ *
+ * PURPOSE: Clear filters and restore original table.
+ *
+ * STEPS:
+ *  1. Clear #filterInput value
+ *  2. Reset #sortSelect to ""
+ *  3. Call renderTable(window.DS) to restore full dataset
+ *  4. Update #rowCount
+ */
+function resetTable() {
+  // TODO: Implement this function
+  console.warn("⚠ Student 1: resetTable() is not yet implemented.");
+}
+
+/* Student 1 entry point — runs when DOM is ready */
+document.addEventListener('DOMContentLoaded', () => {
+  loadDataset(); // TODO: This call is already here — just implement the function above
+});
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   ██╗   ██╗██╗███████╗██╗   ██╗ █████╗ ██╗     ██╗███████╗
+   ██║   ██║██║██╔════╝██║   ██║██╔══██╗██║     ██║╚════██╗
+   ██║   ██║██║███████╗██║   ██║███████║██║     ██║    ██╔╝
+   ╚██╗ ██╔╝██║╚════██║██║   ██║██╔══██║██║     ██║   ██╔╝
+    ╚████╔╝ ██║███████║╚██████╔╝██║  ██║███████╗██║   ██║
+     ╚═══╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝   ╚═╝
+
+   STUDENT 2 — VISUALIZATION LAYER (branch: feature/visualization)
+═══════════════════════════════════════════════════════════════════ */
+
+/**
+ * STUDENT 2 TODO — initCharts()
+ *
+ * PURPOSE: Entry point. Called from onDataReady() after data is loaded.
+ * Call all four draw functions here, passing window.DS.
+ *
+ * IMPORTANT: Destroy any existing Chart instance before creating a new one.
+ * Use window.CHARTS to track instances:
+ *   if (window.CHARTS['barChart']) window.CHARTS['barChart'].destroy();
+ */
+function initCharts() {
+  // TODO: Call all four chart functions here
+  // drawBarChart('barChart', window.DS);
+  // drawScatterPlot('scatterChart', window.DS);
+  // drawHistogram('histChart', window.DS);
+  // drawPieChart('pieChart', window.DS);
+
+  console.warn("⚠ Student 2: initCharts() is not yet implemented.");
+}
+
+/**
+ * STUDENT 2 TODO — drawBarChart(canvasId, data)
+ *
+ * PURPOSE: Bar chart — Study Hours per student on x-axis, Final Score on y-axis.
+ *
+ * @param {string} canvasId - 'barChart'
+ * @param {Array}  data     - window.DS array
+ *
+ * CHART.JS GUIDE:
+ *  const ctx = document.getElementById(canvasId).getContext('2d');
+ *  new Chart(ctx, { type: 'bar', data: { labels: [...], datasets: [{ data: [...] }] } });
+ *
+ * VISUAL REQUIREMENTS:
+ *  - Labels = student first names (split on space, take index 0)
+ *  - Bars colored with the amber accent (#f0b429) at 80% opacity
+ *  - X-axis: Study Hours (numeric, sort data by studyHours ascending first)
+ *  - Y-axis: Final Score (0–100)
+ *  - Enable the legend and tooltip
+ */
+function drawBarChart(canvasId, data) {
+  // TODO: Implement this function
+  // After implementing, show the canvas:
+  // document.getElementById('barPlaceholder').style.display = 'none';
+  // document.getElementById(canvasId).style.display = 'block';
+
+  console.warn("⚠ Student 2: drawBarChart() is not yet implemented.");
+}
+
+/**
+ * STUDENT 2 TODO — drawScatterPlot(canvasId, data)
+ *
+ * PURPOSE: Scatter plot — Attendance % (x) vs Final Score (y).
+ *          Each point represents one student.
+ *
+ * @param {string} canvasId - 'scatterChart'
+ * @param {Array}  data     - window.DS array
+ *
+ * VISUAL REQUIREMENTS:
+ *  - Point data format: { x: attendance, y: score }
+ *  - Color points teal (#3ecfcf)
+ *  - Show student name in the tooltip (use tooltip callback)
+ *  - Draw a simple linear regression line as a second dataset (optional bonus)
+ */
+function drawScatterPlot(canvasId, data) {
+  // TODO: Implement this function
+  // After implementing, show the canvas:
+  // document.getElementById('scatterPlaceholder').style.display = 'none';
+  // document.getElementById(canvasId).style.display = 'block';
+
+  console.warn("⚠ Student 2: drawScatterPlot() is not yet implemented.");
+}
+
+/**
+ * STUDENT 2 TODO — drawHistogram(canvasId, data)
+ *
+ * PURPOSE: Histogram — distribution of Final Scores in 10-point bins.
+ *          Bins: 40–49, 50–59, 60–69, 70–79, 80–89, 90–100
+ *
+ * @param {string} canvasId - 'histChart'
+ * @param {Array}  data     - window.DS array
+ *
+ * STEPS:
+ *  1. Define bins: [40,50,60,70,80,90,100]
+ *  2. Count how many students' scores fall in each bin
+ *  3. Render as a bar chart (type: 'bar') with no gap between bars
+ *     (use barPercentage: 1.0, categoryPercentage: 1.0)
+ *
+ * VISUAL REQUIREMENTS:
+ *  - Bars colored coral (#e05c6a) at 75% opacity
+ *  - X-axis labels: '40s', '50s', '60s', '70s', '80s', '90s+'
+ *  - Y-axis: Count (integer ticks)
+ */
+function drawHistogram(canvasId, data) {
+  // TODO: Implement this function
+  // After implementing, show the canvas:
+  // document.getElementById('histPlaceholder').style.display = 'none';
+  // document.getElementById(canvasId).style.display = 'block';
+
+  console.warn("⚠ Student 2: drawHistogram() is not yet implemented.");
+}
+
+/**
+ * STUDENT 2 TODO — drawPieChart(canvasId, data)
+ *
+ * PURPOSE: Pie / doughnut chart showing grade distribution (A, B, C, D).
+ *
+ * @param {string} canvasId - 'pieChart'
+ * @param {Array}  data     - window.DS array
+ *
+ * STEPS:
+ *  1. Count occurrences of each grade in data
+ *  2. Build labels: ['A', 'B', 'C', 'D'] and matching counts
+ *  3. Use type: 'doughnut'
+ *
+ * VISUAL REQUIREMENTS:
+ *  - Colors: A=#56d364 (green), B=#f0b429 (amber), C=#3ecfcf (teal), D=#e05c6a (coral)
+ *  - Show percentage labels in tooltip
+ *  - Cutout: '55%' for doughnut style
+ */
+function drawPieChart(canvasId, data) {
+  // TODO: Implement this function
+  // After implementing, show the canvas:
+  // document.getElementById('piePlaceholder').style.display = 'none';
+  // document.getElementById(canvasId).style.display = 'block';
+
+  console.warn("⚠ Student 2: drawPieChart() is not yet implemented.");
+}
+
+/**
+ * STUDENT 2 HELPER — getChartDefaults()
+ * Pre-configured Chart.js global options matching the dark theme.
+ * Use or extend this in your chart configs.
+ *
+ * @returns {Object} Chart.js options object
+ */
+function getChartDefaults() {
+  return {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        labels: { color: '#6b748f', font: { family: 'Courier Prime', size: 11 } }
+      },
+      tooltip: {
+        backgroundColor: '#1c2030',
+        borderColor: '#2a2f45',
+        borderWidth: 1,
+        titleColor: '#f0b429',
+        bodyColor: '#d4daf0',
+        titleFont: { family: 'Courier Prime' },
+        bodyFont: { family: 'Courier Prime' }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#6b748f', font: { family: 'Courier Prime', size: 10 } },
+        grid:  { color: '#2a2f45' }
+      },
+      y: {
+        ticks: { color: '#6b748f', font: { family: 'Courier Prime', size: 10 } },
+        grid:  { color: '#2a2f45' }
+      }
+    }
+  };
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   ███████╗████████╗ █████╗ ████████╗███████╗
+   ██╔════╝╚══██╔══╝██╔══██╗╚══██╔══╝██╔════╝
+   ███████╗   ██║   ███████║   ██║   ███████╗
+   ╚════██║   ██║   ██╔══██║   ██║   ╚════██║
+   ███████║   ██║   ██║  ██║   ██║   ███████║
+   ╚══════╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚══════╝
+
+   STUDENT 3 — STATISTICAL ANALYSIS ENGINE (branch: feature/statistics)
+═══════════════════════════════════════════════════════════════════ */
+
+/**
+ * STUDENT 3 TODO — mean(arr)
+ *
+ * PURPOSE: Compute the arithmetic mean of a numeric array.
+ *
+ * @param  {number[]} arr - Array of numbers
+ * @returns {number}       Mean value, rounded to 2 decimal places
+ *
+ * FORMULA: μ = (Σxᵢ) / n
+ *
+ * EXAMPLE:
+ *   mean([10, 20, 30])  →  20.00
+ *   mean([91, 68, 97])  →  85.33
+ */
+function mean(arr) {
+  // TODO: Implement this function
+  // Hint: use arr.reduce() to sum, then divide by arr.length
+  throw new Error("Student 3: mean() not implemented yet");
+}
+
+/**
+ * STUDENT 3 TODO — median(arr)
+ *
+ * PURPOSE: Find the middle value of a sorted array.
+ *          For even-length arrays, average the two middle values.
+ *
+ * @param  {number[]} arr - Array of numbers
+ * @returns {number}       Median, rounded to 2 decimal places
+ *
+ * FORMULA:
+ *   odd n:  arr[Math.floor(n/2)]  (after sorting)
+ *   even n: (arr[n/2 - 1] + arr[n/2]) / 2
+ *
+ * EXAMPLE:
+ *   median([3, 1, 4, 1, 5])  →  3.00
+ *   median([1, 2, 3, 4])     →  2.50
+ */
+function median(arr) {
+  // TODO: Implement this function
+  // Hint: [...arr].sort((a,b) => a-b) for a sorted copy (do not mutate original)
+  throw new Error("Student 3: median() not implemented yet");
+}
+
+/**
+ * STUDENT 3 TODO — mode(arr)
+ *
+ * PURPOSE: Find the most frequently occurring value(s).
+ *          If multiple values tie, return all of them joined by " & ".
+ *
+ * @param  {number[]} arr - Array of numbers
+ * @returns {string}       Mode value(s) as a string (e.g., "75" or "75 & 80")
+ *
+ * STEPS:
+ *  1. Build a frequency map: { value: count }
+ *  2. Find the maximum count
+ *  3. Collect all values that have that count
+ *  4. Return them joined by " & "
+ */
+function mode(arr) {
+  // TODO: Implement this function
+  throw new Error("Student 3: mode() not implemented yet");
+}
+
+/**
+ * STUDENT 3 TODO — variance(arr)
+ *
+ * PURPOSE: Compute the population variance of a numeric array.
+ *
+ * @param  {number[]} arr - Array of numbers
+ * @returns {number}       Variance σ², rounded to 2 decimal places
+ *
+ * FORMULA: σ² = (Σ(xᵢ − μ)²) / n
+ *
+ * EXAMPLE:
+ *   variance([2, 4, 4, 4, 5, 5, 7, 9])  →  4.00
+ */
+function variance(arr) {
+  // TODO: Implement this function
+  // Hint: compute mean first, then average the squared differences
+  throw new Error("Student 3: variance() not implemented yet");
+}
+
+/**
+ * STUDENT 3 TODO — stdDev(arr)
+ *
+ * PURPOSE: Standard deviation — square root of population variance.
+ *
+ * @param  {number[]} arr - Array of numbers
+ * @returns {number}       σ, rounded to 2 decimal places
+ *
+ * FORMULA: σ = √(variance(arr))
+ */
+function stdDev(arr) {
+  // TODO: Implement this function
+  // Hint: Math.sqrt(variance(arr))
+  throw new Error("Student 3: stdDev() not implemented yet");
+}
+
+/**
+ * STUDENT 3 TODO — pearsonCorr(x, y)
+ *
+ * PURPOSE: Pearson correlation coefficient r between two arrays.
+ *          r ranges from -1 (perfect negative) to +1 (perfect positive).
+ *
+ * @param  {number[]} x - Independent variable values
+ * @param  {number[]} y - Dependent variable values (same length as x)
+ * @returns {number}      r, rounded to 4 decimal places
+ *
+ * FORMULA:
+ *   r = Σ((xᵢ−x̄)(yᵢ−ȳ)) / √(Σ(xᵢ−x̄)² · Σ(yᵢ−ȳ)²)
+ *
+ * INTERPRETATION HELPER (use in renderStats):
+ *   |r| ≥ 0.7 → Strong
+ *   |r| ≥ 0.4 → Moderate
+ *   |r| < 0.4 → Weak
+ *   Sign: positive = direct relationship, negative = inverse
+ */
+function pearsonCorr(x, y) {
+  // TODO: Implement this function
+  throw new Error("Student 3: pearsonCorr() not implemented yet");
+}
+
+/**
+ * STUDENT 3 TODO — linearRegression(x, y)
+ *
+ * PURPOSE: Simple linear regression — find the best-fit line y = mx + b.
+ *
+ * @param  {number[]} x - Independent variable values
+ * @param  {number[]} y - Dependent variable values
+ * @returns {{ slope: number, intercept: number, rSquared: number }}
+ *
+ * FORMULAS:
+ *   m (slope)     = Σ((xᵢ−x̄)(yᵢ−ȳ)) / Σ(xᵢ−x̄)²
+ *   b (intercept) = ȳ − m·x̄
+ *   R²            = r² (square the Pearson correlation coefficient)
+ *
+ * ROUND: slope and intercept to 4 decimal places; R² to 4 decimal places.
+ *
+ * EXAMPLE OUTPUT: { slope: 2.1, intercept: 45.3, rSquared: 0.87 }
+ */
+function linearRegression(x, y) {
+  // TODO: Implement this function
+  throw new Error("Student 3: linearRegression() not implemented yet");
+}
+
+/**
+ * STUDENT 3 TODO — renderStats(data)
+ *
+ * PURPOSE: Compute all statistics from data and update the DOM.
+ *          Called from onDataReady() after Student 1 loads the dataset.
+ *
+ * @param {Array} data - window.DS array
+ *
+ * DOM ELEMENTS TO UPDATE:
+ *   #statMean, #statMedian, #statStdDev, #statMode  — summary cards
+ *   #dCount, #dMin, #dMax, #dRange, #dVariance, #dStdDev — descriptive stats
+ *   #rPearson, #rInterp, #rSlope, #rIntercept, #rSquared, #rEquation — regression
+ *
+ * STEPS:
+ *  1. Extract scores:    data.map(d => d.score)
+ *  2. Extract hours:     data.map(d => d.studyHours)
+ *  3. Call each stat function and update the matching DOM element
+ *  4. For #rEquation, build a string like: "score = 2.10·hours + 45.30"
+ *  5. For #rInterp, return the interpretation string (Strong/Moderate/Weak)
+ *     combined with the direction (Positive/Negative)
+ *
+ * EXAMPLE interpretation: "Strong Positive Correlation"
+ */
+function renderStats(data) {
+  // TODO: Implement this function
+  // Hint: use try/catch so errors in your stat functions don't crash the page
+  console.warn("⚠ Student 3: renderStats() is not yet implemented.");
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   END OF STUDENT CONTRIBUTION ZONES
+────────────────────────────────────────────────────────────────── */
+</script>
+
+</body>
+</html>
