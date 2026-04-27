@@ -254,6 +254,221 @@ function showTab(tabName) {
 }
 
 /* =========================
+   LOAD CSV (robust) + STATS
+========================= */
+
+// Inject small stats/file-picker UI into the page (keeps HTML tidy when not needed)
+(function insertStatsPanel() {
+  const tableView = document.getElementById('tableView');
+  if (!tableView) return;
+  const container = document.createElement('div');
+  container.id = 'statsControlsAndPanel';
+  container.innerHTML = `
+    <div id="statsControls" style="margin:12px 0; display:none;">
+      <label style="font-family:Arial;color:#d4daf0;font-size:0.92rem;">If fetch fails, choose dataset.csv:</label>
+      <input id="statsFileInput" type="file" accept=".csv" style="margin-left:8px;" />
+      <div id="statsMessage" style="color:#e05c6a;font-family:Arial;margin-top:6px;"></div>
+    </div>
+
+    <div id="statsPanel" style="margin-top:20px; display:block;">
+      <h3 style="color:#f0b429; margin:8px 0;">Statistical Summary</h3>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="background:#111827;padding:12px;border-radius:8px;min-width:120px;">
+          <div style="font-size:0.8rem;color:#6b748f">Mean Salary</div>
+          <div id="statMean" style="font-weight:700;color:#e05c6a">—</div>
+        </div>
+        <div style="background:#111827;padding:12px;border-radius:8px;min-width:120px;">
+          <div style="font-size:0.8rem;color:#6b748f">Median Salary</div>
+          <div id="statMedian" style="font-weight:700;color:#e05c6a">—</div>
+        </div>
+        <div style="background:#111827;padding:12px;border-radius:8px;min-width:120px;">
+          <div style="font-size:0.8rem;color:#6b748f">Std Dev</div>
+          <div id="statStdDev" style="font-weight:700;color:#e05c6a">—</div>
+        </div>
+        <div style="background:#111827;padding:12px;border-radius:8px;min-width:120px;">
+          <div style="font-size:0.8rem;color:#6b748f">Mode</div>
+          <div id="statMode" style="font-weight:700;color:#e05c6a">—</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:20px;flex-wrap:wrap;">
+        <div style="background:#111827;padding:12px;border-radius:8px;min-width:260px;">
+          <div style="font-size:0.85rem;color:#6b748f">Descriptive</div>
+          <ul style="list-style:none;padding:0;margin:8px 0 0 0;font-family:Arial;font-size:0.9rem;color:#3ecfcf">
+            <li>Count: <span id="dCount">—</span></li>
+            <li>Min: <span id="dMin">—</span></li>
+            <li>Max: <span id="dMax">—</span></li>
+            <li>Range: <span id="dRange">—</span></li>
+            <li>Variance: <span id="dVariance">—</span></li>
+            <li>Std Dev: <span id="dStdDev">—</span></li>
+          </ul>
+        </div>
+
+        <div style="background:#111827;padding:12px;border-radius:8px;min-width:260px;">
+          <div style="font-size:0.85rem;color:#6b748f">Correlation (Experience → Salary)</div>
+          <ul style="list-style:none;padding:0;margin:8px 0 0 0;font-family:Arial;font-size:0.9rem;color:#3ecfcf">
+            <li>Pearson r: <span id="rPearson">—</span></li>
+            <li>Interpretation: <span id="rInterp">—</span></li>
+            <li>Slope: <span id="rSlope">—</span></li>
+            <li>Intercept: <span id="rIntercept">—</span></li>
+            <li>R²: <span id="rSquared">—</span></li>
+            <li>Equation: <span id="rEquation">—</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  `;
+  tableView.parentNode.insertBefore(container, tableView.nextSibling);
+})();
+
+// Quote-aware CSV parser (handles quoted fields and escaped quotes)
+function parseCSVText(text) {
+  if (!text) return [];
+  const normalized = String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = normalized.split('\n').filter(l => l.trim() !== '');
+
+  function parseLine(line) {
+    const out = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
+        else { inQuotes = !inQuotes; }
+      } else if (ch === ',' && !inQuotes) {
+        out.push(cur);
+        cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  }
+
+  const headers = parseLine(lines[0]).map(h => h.trim());
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseLine(lines[i]);
+    if (vals.length === 0) continue;
+    const obj = {};
+    for (let j = 0; j < headers.length; j++) {
+      let key = headers[j];
+      let val = vals[j] !== undefined ? vals[j] : '';
+      // convert numeric-looking salary/experience fields
+      if (key && (key.toLowerCase().includes('salary') || key.toLowerCase().includes('experience'))) {
+        const num = Number(String(val).replace(/[^0-9.+-eE]/g, ''));
+        val = isNaN(num) ? val : num;
+      }
+      obj[key] = val;
+    }
+    rows.push(obj);
+  }
+  return rows;
+}
+
+// Unified loader: fetch when possible, otherwise show file picker
+async function loadCSV() {
+  const controls = document.getElementById('statsControls');
+  const msg = document.getElementById('statsMessage');
+  try {
+    if (location.protocol === 'file:') {
+      if (controls) controls.style.display = 'block';
+      if (msg) msg.textContent = 'Page opened via file:// — please select dataset.csv.';
+      return;
+    }
+
+    const res = await fetch('./dataset.csv');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+
+    // use robust parser
+    const rows = parseCSVText(text);
+    window.DS = rows.slice(0, 5000);
+    ORIGINAL_DATA = [...window.DS];
+
+    renderTable(window.DS);
+
+    // show stats panel and render statistics + charts
+    const sp = document.getElementById('statsPanel'); if (sp) sp.style.display = 'block';
+    renderStats(window.DS);
+    if (window.DS.length > 0) initCharts();
+
+  } catch (err) {
+    console.error('Error loading dataset:', err);
+    if (controls) controls.style.display = 'block';
+    if (msg) msg.textContent = 'Could not fetch dataset.csv — choose file or run a local server. (' + err.message + ')';
+  }
+}
+
+// File input handler (fallback)
+(function attachFileInput() {
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (!t || t.id !== 'statsFileInput') return;
+    const f = t.files && t.files[0];
+    const msg = document.getElementById('statsMessage');
+    if (!f) return;
+    if (msg) msg.textContent = 'Reading ' + f.name + '...';
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const rows = parseCSVText(String(r.result));
+        if (!rows || rows.length === 0) {
+          if (msg) msg.textContent = 'File parsed but contains no rows.';
+          return;
+        }
+        window.DS = rows.slice(0, 5000);
+        ORIGINAL_DATA = [...window.DS];
+        renderTable(window.DS);
+        const sp = document.getElementById('statsPanel'); if (sp) sp.style.display = 'block';
+        renderStats(window.DS);
+        if (window.DS.length > 0) initCharts();
+        if (msg) msg.textContent = 'Loaded ' + f.name + '.';
+      } catch (err) {
+        console.error('Error parsing file:', err);
+        if (msg) msg.textContent = 'Error parsing CSV: ' + err.message;
+      }
+    };
+    r.onerror = () => { if (msg) msg.textContent = 'Error reading file.'; };
+    r.readAsText(f);
+  });
+})();
+
+// Statistical helpers (mean, median, mode, variance, stdDev, pearson, regression)
+function mean(arr) { if (!arr || arr.length === 0) return 0; const sum = arr.reduce((a,b) => a + b, 0); return sum / arr.length; }
+function median(arr) { if (!arr || arr.length===0) return 0; const s=[...arr].sort((a,b)=>a-b); const n=s.length; return n%2? s[(n-1)/2] : (s[n/2-1]+s[n/2])/2; }
+function mode(arr) { if (!arr||arr.length===0) return 'N/A'; const f={}; let m=0; arr.forEach(v=>{f[v]=(f[v]||0)+1; m=Math.max(m,f[v]);}); if (m<=1) return 'No mode'; return Object.keys(f).filter(k=>f[k]===m).map(Number).sort((a,b)=>a-b).join(' & '); }
+function variance(arr){ if(!arr||arr.length===0) return 0; const mu=mean(arr); return arr.reduce((acc,v)=>acc+Math.pow(v-mu,2),0)/arr.length; }
+function stdDev(arr){return Math.sqrt(variance(arr));}
+function pearsonCorr(x,y){ if(!x||!y||x.length!==y.length||x.length===0) return 0; const n=x.length; const mx=mean(x), my=mean(y); let num=0,sx=0,sy=0; for(let i=0;i<n;i++){const dx=x[i]-mx, dy=y[i]-my; num+=dx*dy; sx+=dx*dx; sy+=dy*dy;} const den=Math.sqrt(sx*sy); return den===0?0:num/den; }
+function linearRegression(x,y){ if(!x||!y||x.length!==y.length||x.length===0) return {slope:0,intercept:0,rSquared:0}; const mx=mean(x), my=mean(y); let num=0,den=0; for(let i=0;i<x.length;i++){ num+=(x[i]-mx)*(y[i]-my); den+=(x[i]-mx)*(x[i]-mx);} const slope = den===0?0:num/den; const intercept = my - slope*mx; const r = pearsonCorr(x,y); return {slope, intercept, rSquared: r*r}; }
+function getMin(arr){ return arr.reduce((m,v)=> v<m? v:m, arr[0]); }
+function getMax(arr){ return arr.reduce((M,v)=> v>M? v:M, arr[0]); }
+
+function renderStats(data){
+  try{
+    const salaries = data.map(d => Number(d.salary)).filter(v=>!isNaN(v));
+    const experience = data.map(d => Number(d.experience_years)).filter(v=>!isNaN(v));
+    const mVal = mean(salaries); const med=median(salaries); const sd=stdDev(salaries); const mo=mode(salaries);
+    const minV = getMin(salaries); const maxV = getMax(salaries); const varV = variance(salaries);
+
+    const fmt = (v) => isNaN(v)? '—' : '$' + v.toLocaleString(undefined,{maximumFractionDigits:2});
+    const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+
+    set('statMean', fmt(mVal)); set('statMedian', fmt(med)); set('statStdDev', fmt(sd)); set('statMode', mo !== 'No mode' ? ('$'+mo) : 'N/A');
+    set('dCount', (salaries.length).toLocaleString()); set('dMin', fmt(minV)); set('dMax', fmt(maxV)); set('dRange', fmt(maxV - minV)); set('dVariance', varV.toLocaleString(undefined,{maximumFractionDigits:2})); set('dStdDev', sd.toLocaleString(undefined,{maximumFractionDigits:2}));
+
+    const r = pearsonCorr(experience, salaries); const reg = linearRegression(experience, salaries);
+    set('rPearson', r.toFixed(4));
+    let interp = ''; const absR = Math.abs(r); if (absR>=0.7) interp+='Strong '; else if (absR>=0.4) interp+='Moderate '; else interp+='Weak '; interp += r>=0? 'Positive':'Negative'; set('rInterp', interp);
+    set('rSlope', reg.slope.toFixed(4)); set('rIntercept', reg.intercept.toFixed(4)); set('rSquared', reg.rSquared.toFixed(4)); set('rEquation', 'salary = ' + reg.slope.toFixed(2) + '·experience + ' + reg.intercept.toFixed(2));
+
+  } catch(e){ console.error('Error rendering stats', e); }
+}
+
+/* =========================
    LOAD CSV
 ========================= */
 async function loadCSV() {
@@ -261,13 +476,24 @@ async function loadCSV() {
     const res = await fetch("./dataset.csv");
     const text = await res.text();
 
-    window.DS = parseCSV(text).slice(0, 5000);
+    // use robust parser
+    const rows = parseCSVText(text);
+    window.DS = rows.slice(0, 5000);
     ORIGINAL_DATA = [...window.DS];
 
     renderTable(window.DS);
 
+    // show stats panel and render statistics + charts
+    const sp = document.getElementById('statsPanel'); if (sp) sp.style.display = 'block';
+    renderStats(window.DS);
+    if (window.DS.length > 0) initCharts();
+
   } catch (err) {
     console.error(err);
+    const controls = document.getElementById('statsControls');
+    const msg = document.getElementById('statsMessage');
+    if (controls) controls.style.display = 'block';
+    if (msg) msg.textContent = 'Could not fetch dataset.csv — choose file or run a local server. (' + err.message + ')';
   }
 }
 
