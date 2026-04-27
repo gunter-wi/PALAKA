@@ -108,7 +108,7 @@ Frontend Developer,18,PhD,2,Retail,Enterprise,India,Hybrid,5,128377`;
 window.DS = [];
 
 /* ===============================
-   JAVIER FUNCTIONS (UNCHANGED)
+   JAVIER FUNCTIONS
 ================================ */
 function loadDataset() {
   const lines = RAW_DATA.trim().split("\n");
@@ -130,7 +130,6 @@ function loadDataset() {
   renderTable(window.DS);
   updateCount(window.DS.length);
 
-  // CONNECT OTHERS
   initCharts();
   renderStats();
 }
@@ -185,7 +184,7 @@ function updateCount(count) {
 }
 
 /* ===============================
-   ALANSALON (USING CSV)
+   ALANSALON (CONNECTED TO CSV)
 ================================ */
 function initCharts(){
   const data = window.DS;
@@ -226,25 +225,31 @@ function initCharts(){
 }
 
 /* ===============================
-   GUARDO (USING CSV)
+   GUARDO (FIXED)
 ================================ */
 function mean(arr){return arr.reduce((a,b)=>a+b,0)/arr.length;}
+
 function median(arr){
   const s=[...arr].sort((a,b)=>a-b);
   const m=Math.floor(s.length/2);
   return s.length%2?s[m]:(s[m-1]+s[m])/2;
 }
-function std(arr){
+
+function variance(arr){
   const m=mean(arr);
-  return Math.sqrt(arr.map(x=>(x-m)**2).reduce((a,b)=>a+b)/arr.length);
+  return mean(arr.map(x=>(x-m)**2));
+}
+
+function std(arr){
+  return Math.sqrt(variance(arr));
 }
 
 function renderStats(){
   const salaries = window.DS.map(x=>x.salary);
 
-  document.getElementById("mean").innerText = mean(salaries);
-  document.getElementById("median").innerText = median(salaries);
-  document.getElementById("std").innerText = std(salaries);
+  document.getElementById("mean").innerText = mean(salaries).toFixed(2);
+  document.getElementById("median").innerText = median(salaries).toFixed(2);
+  document.getElementById("std").innerText = std(salaries).toFixed(2);
 }
 
 /* ===============================
