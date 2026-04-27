@@ -418,7 +418,7 @@ function drawBarChart(canvasId, data) {
       datasets: [{
         label: 'Salary',
         data: data.map(row => row.salary),
-        borderWidth: 2
+        borderWidth: 1
       }]
     },
     options: {
@@ -463,7 +463,7 @@ function drawScatterPlot(canvasId, data) {
           x: row.experience_years,
           y: row.salary
         })),
-        pointRadius: 6
+        pointRadius: 7
       }]
     },
     options: {
