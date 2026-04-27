@@ -153,7 +153,6 @@ tr:hover {
 
 <!-- Table View -->
 <div id="tableView" class="tab-content active">
-<p id="rowCount">Loading...</p>
 
 <!-- CONTROLS -->
 <div class="controls">
@@ -266,8 +265,10 @@ async function loadCSV() {
     ORIGINAL_DATA = [...window.DS];
 
     renderTable(window.DS);
-    updateCount(window.DS.length);
 
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 /* =========================
@@ -384,7 +385,6 @@ function applyFilterSort() {
   window.DS = data;
 
   renderTable(data);
-  updateCount(data.length);
 }
 
 /* =========================
@@ -400,9 +400,7 @@ function resetTable() {
   window.DS = [...ORIGINAL_DATA];
 
   renderTable(window.DS);
-  updateCount(window.DS.length);
 }
-
 
 /* =========================
    CHART HELPERS
