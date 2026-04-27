@@ -268,11 +268,6 @@ async function loadCSV() {
     renderTable(window.DS);
     updateCount(window.DS.length);
 
-  } catch (err) {
-    console.error(err);
-    document.getElementById("rowCount").textContent =
-      "❌ CSV failed. Check dataset.csv location or use Live Server.";
-  }
 }
 
 /* =========================
@@ -407,10 +402,6 @@ function resetTable() {
   renderTable(window.DS);
   updateCount(window.DS.length);
 }
-
-/* =========================
-   COUNT
-========================= */
 
 
 /* =========================
