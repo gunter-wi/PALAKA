@@ -1,3 +1,36 @@
+// Load CSV data
+async function loadCSVData() {
+    try {
+        const response = await fetch('dataset.csv');
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.status);
+        }
+        const text = await response.text();
+        const lines = text.trim().split('\n');
+        const headers = lines[0].split(',');
+        
+        const data = lines.slice(1).map(line => {
+            const values = line.split(',');
+            const obj = {};
+            headers.forEach((header, i) => {
+                obj[header] = values[i];
+            });
+            // Convert numeric fields
+            obj.experience_years = parseInt(obj.experience_years);
+            obj.skills_count = parseInt(obj.skills_count);
+            obj.certifications = parseInt(obj.certifications);
+            obj.salary = parseInt(obj.salary);
+            return obj;
+        });
+        
+        console.log('Parsed', data.length, 'rows from CSV');
+        return data;
+    } catch (error) {
+        console.error('Error loading CSV:', error);
+        return [];
+    }
+}
+
 let chartInstances = {};
 
 // helper para maiwasan canvas reuse error
@@ -7,7 +40,7 @@ function destroyChart(canvasId) {
     }
 }
 
-// 1. BAR CHART — Study Hours vs Final Score
+// 1. BAR CHART — Job Title vs Salary
 function drawBarChart(canvasId, data) {
     destroyChart(canvasId);
 
@@ -16,10 +49,10 @@ function drawBarChart(canvasId, data) {
     chartInstances[canvasId] = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: data.map(row => row.name),
+            labels: data.map(row => row.job_title),
             datasets: [{
-                label: 'Final Score',
-                data: data.map(row => row.score),
+                label: 'Salary',
+                data: data.map(row => row.salary),
                 borderWidth: 1
             }]
         },
@@ -28,21 +61,21 @@ function drawBarChart(canvasId, data) {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Study Hours vs Final Score'
+                    text: 'Job Title vs Salary'
                 }
             },
             scales: {
                 x: {
                     title: {
                         display: true,
-                        text: 'Students'
+                        text: 'Job Title'
                     }
                 },
                 y: {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Final Score'
+                        text: 'Salary'
                     }
                 }
             }
@@ -50,7 +83,7 @@ function drawBarChart(canvasId, data) {
     });
 }
 
-// 2. SCATTER PLOT — Attendance vs Score
+// 2. SCATTER PLOT — Experience vs Salary
 function drawScatterPlot(canvasId, data) {
     destroyChart(canvasId);
 
@@ -60,10 +93,10 @@ function drawScatterPlot(canvasId, data) {
         type: 'scatter',
         data: {
             datasets: [{
-                label: 'Attendance vs Score',
+                label: 'Experience vs Salary',
                 data: data.map(row => ({
-                    x: row.attendance,
-                    y: row.score
+                    x: row.experience_years,
+                    y: row.salary
                 })),
                 pointRadius: 6
             }]
@@ -74,13 +107,13 @@ function drawScatterPlot(canvasId, data) {
                 x: {
                     title: {
                         display: true,
-                        text: 'Attendance %'
+                        text: 'Experience Years'
                     }
                 },
                 y: {
                     title: {
                         display: true,
-                        text: 'Final Score'
+                        text: 'Salary'
                     }
                 }
             }
@@ -88,26 +121,30 @@ function drawScatterPlot(canvasId, data) {
     });
 }
 
-// 3. HISTOGRAM — Final Score Distribution
+// 3. HISTOGRAM — Salary Distribution
 function drawHistogram(canvasId, data) {
     destroyChart(canvasId);
 
     const ctx = document.getElementById(canvasId);
 
     const bins = {
-        "60-69": 0,
-        "70-79": 0,
-        "80-89": 0,
-        "90-100": 0
+        "50k-80k": 0,
+        "80k-110k": 0,
+        "110k-140k": 0,
+        "140k-170k": 0,
+        "170k-200k": 0,
+        "200k+": 0
     };
 
     data.forEach(row => {
-        const score = row.score;
+        const salary = row.salary;
 
-        if (score < 70) bins["60-69"]++;
-        else if (score < 80) bins["70-79"]++;
-        else if (score < 90) bins["80-89"]++;
-        else bins["90-100"]++;
+        if (salary < 80000) bins["50k-80k"]++;
+        else if (salary < 110000) bins["80k-110k"]++;
+        else if (salary < 140000) bins["110k-140k"]++;
+        else if (salary < 170000) bins["140k-170k"]++;
+        else if (salary < 200000) bins["170k-200k"]++;
+        else bins["200k+"]++;
     });
 
     chartInstances[canvasId] = new Chart(ctx, {
@@ -126,24 +163,33 @@ function drawHistogram(canvasId, data) {
     });
 }
 
-// 4. PIE CHART — Grade Distribution
+// 4. PIE CHART — Industry Distribution
 function drawPieChart(canvasId, data) {
     destroyChart(canvasId);
 
     const ctx = document.getElementById(canvasId);
 
-    const grades = { A: 0, B: 0, C: 0, D: 0 };
-
+    const industries = {};
     data.forEach(row => {
-        grades[row.grade]++;
+        industries[row.industry] = (industries[row.industry] || 0) + 1;
     });
 
     chartInstances[canvasId] = new Chart(ctx, {
         type: 'pie',
         data: {
-            labels: Object.keys(grades),
+            labels: Object.keys(industries),
             datasets: [{
-                data: Object.values(grades)
+                data: Object.values(industries),
+                backgroundColor: [
+                    '#36A2EB',
+                    '#FF6384',
+                    '#FF9F40',
+                    '#FFCD56',
+                    '#4BC0C0',
+                    '#9966FF',
+                    '#C9C9C9',
+                    '#FF6384'
+                ]
             }]
         },
         options: {
@@ -152,12 +198,18 @@ function drawPieChart(canvasId, data) {
     });
 }
 
-// call all charts
-function initCharts() {
-    const data = window.DS;
+// Call all charts with CSV data
+async function initCharts() {
+    try {
+        const data = await loadCSVData();
+        console.log('CSV Data loaded:', data.length, 'records');
+        window.DS = data;
 
-    drawBarChart('barChart', data);
-    drawScatterPlot('scatterChart', data);
-    drawHistogram('histogramChart', data);
-    drawPieChart('pieChart', data);
+        drawBarChart('barChart', data);
+        drawScatterPlot('scatterChart', data);
+        drawHistogram('histogramChart', data);
+        drawPieChart('pieChart', data);
+    } catch (error) {
+        console.error('Error initializing charts:', error);
+    }
 }
