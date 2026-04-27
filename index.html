@@ -167,6 +167,12 @@ tr:hover {
     <option value="salary">Salary</option>
   </select>
 
+  <!-- New: sort order selector -->
+  <select id="sortOrder" title="Sort order">
+    <option value="desc">High → Low</option>
+    <option value="asc">Low → High</option>
+  </select>
+
   <button onclick="applyFilterSort()">Apply</button>
   <button onclick="resetTable()">Reset</button>
 </div>
@@ -350,6 +356,7 @@ function applyFilterSort() {
     .toLowerCase();
 
   const sort = document.getElementById("sortSelect").value;
+  const order = document.getElementById("sortOrder").value || 'desc';
 
   /* FILTER */
   if (search) {
@@ -362,10 +369,20 @@ function applyFilterSort() {
   /* SORT */
   if (sort) {
     data.sort((a, b) => {
-      if (typeof a[sort] === "number") {
-        return b[sort] - a[sort];
+      const av = a[sort];
+      const bv = b[sort];
+
+      // numeric comparison when possible
+      if ((typeof av === 'number' || !isNaN(av)) && (typeof bv === 'number' || !isNaN(bv))) {
+        const na = Number(av) || 0;
+        const nb = Number(bv) || 0;
+        return order === 'desc' ? (nb - na) : (na - nb);
       }
-      return (a[sort] || "").localeCompare(b[sort] || "");
+
+      // string comparison fallback
+      const sa = (av || "") + "";
+      const sb = (bv || "") + "";
+      return order === 'desc' ? sb.localeCompare(sa) : sa.localeCompare(sb);
     });
   }
 
@@ -381,6 +398,9 @@ function applyFilterSort() {
 function resetTable() {
   document.getElementById("searchInput").value = "";
   document.getElementById("sortSelect").value = "";
+  // reset sort order to default (High → Low)
+  const so = document.getElementById("sortOrder");
+  if (so) so.value = 'desc';
 
   window.DS = [...ORIGINAL_DATA];
 
